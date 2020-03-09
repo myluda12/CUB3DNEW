@@ -22,6 +22,9 @@
 # define rad(x) ((x * M_PI) / 180)
 # define deg(x) ((x * 360) / (2 * M_PI))
 
+//int     g_rays[1000];
+//int     g_rays_hit[1000];
+
 int		get_next_line(int fd, char **line);
 int		ft_strdel(char **tmp, char **str, int num, int ret);
 int		ft_isnewline(char *buff);

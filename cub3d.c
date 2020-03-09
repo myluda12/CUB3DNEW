@@ -105,14 +105,24 @@ float WallStripWidth = 1;
 //color
 unsigned int DarkColor;
 //bullshit variables for data (LEARN LATER)
-int tab[5];
+int tab[20];
 void *img1;
-unsigned int *texture;
+void *img2;
+void *img3;
+void *img4;
+unsigned int *textu0;
+unsigned int *textu1;
+unsigned int *textu2;
+unsigned int *textu3;
 float xOfsset;
 float yOffset;
 int g_mhah;
-
+float g_pourcent;
+int copystart;
+int g_rightleftupdown;
 //The Raycasting variables
+//indicateur pour le stockage
+int g_f;
 //float isRaydown = ;
 
 
@@ -199,14 +209,27 @@ void ft_morba3(char **line)
 int abs (int n)
 { 
     return ( (n>0) ? n : ( n * (-1))); 
-} 
-void    ft_texture()
+}
+
+unsigned int    *ft_texture(char     *file, unsigned int *texture)
 {
     int c = 63;
     int i= 0;
-    img1 = mlx_xpm_file_to_image(mlx_ptr,"download.xpm",&tab[0],&tab[1]);
-    texture = (unsigned int *)mlx_get_data_addr(img1,&tab[2],&tab[3], &tab[4]);
+    img1 = mlx_xpm_file_to_image(mlx_ptr,file,&tab[g_f],&tab[g_f + 1]);
+    texture= (unsigned int *)mlx_get_data_addr(img1,&tab[g_f + 2],&tab[g_f + 3], &tab[g_f + 4]);
+    g_f = g_f + 5;
+    return texture;
 }
+
+void     text(void)
+{
+    g_f = 0;
+    textu0 = ft_texture("shanks.xpm", textu0);
+    textu1 = ft_texture("ayoub.xpm", textu1);
+    textu2 = ft_texture("hani.xpm", textu2);
+    textu3 = ft_texture("maroc.xpm", textu3);
+}
+
 //DDA Function for line generation 
 void DDA(int X0, int Y0, int X1, int Y1) 
 { 
@@ -235,6 +258,28 @@ void DDA(int X0, int Y0, int X1, int Y1)
                              // generation step by step 
     } 
 } 
+//FUNCTION TO COVERT HEXA TO RGB
+unsigned int    convert_rgb(int r, int g, int b)
+{
+    unsigned int color;
+    color = r;
+    color = (color << 8) + g;
+    color = (color << 8) + b;
+    return (color);
+} 
+unsigned int    check_opacity(unsigned int hexcolor)
+{
+    double red;
+    double green;
+    double blue;
+    float oppasity;
+
+    oppasity = (distance / 822) > 1 ? 1 : 1 - (distance / 822) ;
+    red = ((hexcolor >> 16) & 255) * oppasity;
+    green = ((hexcolor >> 8) & 255) * oppasity;
+    blue = (hexcolor & 255) * oppasity;
+    return (convert_rgb(red, green, blue));
+}
 
 int wall_checker()
 {
@@ -281,14 +326,39 @@ float ft_normalize_angle(float angle)
     return (angle);
 }
 
+void ft_nizar_calcul()
+{
+     if(g_mhah)
+    {
+        if (rayFacingDown)
+        {
+           g_rightleftupdown = 1;
+        }
+        else if (rayFacingUp)
+        {
+          g_rightleftupdown = 2;
+        }
+    }
+    else if(!g_mhah)
+    {
+        if (rayFacingLeft)
+        {
+           g_rightleftupdown = 3;
+        }
+        else if (rayFacingRight)
+        {
+           g_rightleftupdown = 4;
+        }
+    }
+}
 void render_colomn(int i)
 {
     int start;
     int j;
+    j = 0;
     start = (1000 / 2) - (wallStripHeight / 2);
-    if (start < 0)
-        start = 0;
- 
+    //if (start < 0)
+       // start = 0;
     while(j < start)
     {
         g_data[1000 * j + i] = 0x00FFFF ;//+ pc;
@@ -296,8 +366,29 @@ void render_colomn(int i)
     }
     while(j < start + wallStripHeight && j < 1000)
     {
+        g_pourcent = (j - start) / wallStripHeight;
+            yOffset = 50 * g_pourcent;
+            if(g_rightleftupdown == 1)
+            {
+                g_data[1000 * j + i] = check_opacity(textu0[(int)yOffset * 50 + (int)xOfsset]);
+                //printf("1\n");
+            }
+            else if(g_rightleftupdown == 2)
+            {
+                g_data[1000 * j + i] = check_opacity(textu1[(int)yOffset * 50 + (int)xOfsset]);
+                //printf("2\n");
+            }
+            else if(g_rightleftupdown == 3)
+            {
+                g_data[1000 * j + i] = check_opacity(textu2[(int)yOffset * 50 + (int)xOfsset]);
+                //printf("3\n");
+            }
+            else if(g_rightleftupdown == 4)
+            {
+                g_data[1000 * j + i] = check_opacity(textu3[(int)yOffset * 50 + (int)xOfsset]);
+               // printf("4\n");
+            }
        // mlx_pixel_put(mlx_ptr,win_ptr,i,j,0x006400);
-        g_data[1000 * j + i] = DarkColor;//check_opacity(); //+ pc;
         j++;
     }
     while(j < 1000)
@@ -314,7 +405,7 @@ void render_map3D(int i)
     distanceProjectionPlan = (1000 / 2) / tan(rad(45) / 2); //here delete cos
     wallStripHeight = (50 / correctWallDistance) * distanceProjectionPlan;
     xOfsset = g_mhah == 1 ? fmod(WallHitX,50) : fmod(WallHitY,50);
-
+           ft_nizar_calcul();
     render_colomn(i);
 }
 int ray_Direction()
@@ -337,30 +428,8 @@ float Distance_between_HorVer(int x1,int y1, int x2, int y2)
 {
     return sqrtf(powf((x2 - x1),2) + powf((y2 - y1),2));
 }
-//FUNCTION TO COVERT HEXA TO RGB
-unsigned int    convert_rgb(int r, int g, int b)
-{
-    unsigned int color;
-    color = r;
-    color = (color << 8) + g;
-    color = (color << 8) + b;
-    return (color);
-} 
-unsigned int    check_opacity(unsigned int hexcolor)
-{
-    double red;
-    double green;
-    double blue;
-    float oppasity;
 
-    oppasity = (distance / 822) > 1 ? 1 : 1 - (distance / 822) ;
-    red = ((hexcolor >> 16) & 255) * oppasity;
-    green = ((hexcolor >> 8) & 255) * oppasity;
-    blue = (hexcolor & 255) * oppasity;
-    return (convert_rgb(red, green, blue));
-}
-
-int ft_cast_ray()
+int ft_cast_ray(int index)
 {
     WallHitX = 0;
     WallHitY = 0;
@@ -459,13 +528,17 @@ int ft_cast_ray()
     distance = (HorzHitDistance) < (VertHitDistance) ? HorzHitDistance : VertHitDistance;
     g_mhah = distance == HorzHitDistance ? 1 : 0;
     wasHitVertical = (VertHitDistance) < (HorzHitDistance);
+    
    // printf("%f\n",distance);
     DarkColor = 0x006400;
     DarkColor = check_opacity(DarkColor);
 
 
     DDA(X_player,Y_player,WallHitX,WallHitY); 
- 
+
+   // g_rays[index] = (rayFacingRight) ? 1 : 2;
+    //g_rays[index] *= (rayFacingDown) ? 1 : -1;
+   // g_rays_hit[index] = (wallHoriHit) ? 1 : 0;
 }
 
 int mlx_key_press(int key)
@@ -516,7 +589,7 @@ int deal_key(void)
         if (rotation > 2 * M_PI || rotation < 0)
             rotation = ft_normalize_angle(rotation);
         //DDA(X_player, Y_player,  wallHitX, wallHitY);
-       ft_cast_ray();
+        ft_cast_ray(i);
         rotation += rot;
         render_map3D(i);
         i++;
@@ -569,12 +642,18 @@ int deal_key(void)
 
 int loop_key()
 {
+
+    /*textu1 = "ayoub.xpm";
+    textu2 = "maroc.xpm";
+    textu3 = "shanks.xpm"; */
+
     mlx_hook(win_ptr,2,0,mlx_key_press,0);
     mlx_hook(win_ptr,3,0,key_release,0);
     deal_key();
     mlx_clear_window(mlx_ptr,win_ptr);
     mlx_put_image_to_window(mlx_ptr,win_ptr,g_image,0,0);
-    ft_texture();
+    
+    //ft_texture();
     return 0; 
 }
 
@@ -593,6 +672,8 @@ int main()
     //printf("ayoub")
     x = wall;
     y = wall;
+   // memset(g_rays, 0, 1000 * sizeof(int));
+    //memset(g_rays_hit, 0, 1000 * sizeof(int));
     mlx_ptr = mlx_init();
     win_ptr = mlx_new_window(mlx_ptr, 1000, 1000,"mlx 42");
     g_image = mlx_new_image(mlx_ptr,1000,1000);
@@ -600,7 +681,7 @@ int main()
     int fd = open("map.txt", O_RDONLY);
     line = fd_tab(fd);
     ft_morba3(line);
-    ft_texture();
+    text();
     //return 0;
     rotation = rotationAngle - M_PI / 8;
     rot = rad(45) / 1000;
@@ -608,7 +689,7 @@ int main()
     {
         if (rotation > 2 * M_PI || rotation < 0)
             rotation = ft_normalize_angle(rotation);
-       ft_cast_ray();
+       ft_cast_ray(i);
         rotation += rot;
         i++;
 
